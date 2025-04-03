@@ -7,7 +7,7 @@
 #define COLOR_GRID 0x2a2a2a2a
 #define COLOR_APPLE 0x00ff0000
 #define SNAKE_COLOR 0xffffffff
-#define CELL_SIZE 20
+#define CELL_SIZE 40
 #define GRID_WIDTH 2
 #define FPS 30
 #define ROWS SCREEN_HEIGHT/CELL_SIZE
@@ -18,12 +18,13 @@
 #define APPLE(x, y) fill_cell(surface, x, y, COLOR_APPLE)
 
 struct Snake {
-    double cell_x, cell_y;
-    int size; //relative to cell size
-    int width;
+    int x, y;
+    int length; //relative to cell size
     double speed;
     int direction; //1, 2, 3, 4 (U, D, L, R)
 };
+
+
 
 void fill_cell(SDL_Surface* surface, int x, int y, Uint32 color) {
 
@@ -32,8 +33,16 @@ void fill_cell(SDL_Surface* surface, int x, int y, Uint32 color) {
 
 }
 
+void draw_snake (SDL_Surface* surface, struct Snake* snake) {
+    switch (snake->direction) {
+        case 1:
+            snake->y --;
+            break;
+    }
 
-void drawGrid(SDL_Surface* surface) {
+}
+
+void drawGrid(SDL_Surface* surface)  {
     //rows    
     for(int i = 0; i <= ROWS; i++){
         SDL_Rect line = {0, CELL_SIZE * i, SCREEN_WIDTH, GRID_WIDTH};
@@ -54,7 +63,7 @@ int main() {
     int FPS_COUNTER = 0;
 
     SDL_Rect black_screen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-    struct Snake snake  = {COLS/2, ROWS/2, 10, 1, 1, 1};
+    struct Snake snake  = {10, 10, 3, 1, 1};
     int running = 1; //1 for true and 0 for false
     SDL_Event event;
 
@@ -72,33 +81,34 @@ int main() {
             }
             if(event.type == SDL_EVENT_KEY_DOWN){
                 if (event.key.key == SDLK_W){
-                    snake_y --;
+                    snake.direction = 1;
                 }
                 else if (event.key.key == SDLK_S) {
-                    snake_y ++;
+                    snake.direction  = 2;
                 }
 
                 else if (event.key.key == SDLK_A) {
-                    snake_x --;
+                    snake.direction = 3;
                 }
                 else if (event.key.key == SDLK_D) {
-                    snake_x ++;
+                    snake.direction = 4;
                 }
 
             }
         }
 
 
-//        SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
+        SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
 
         //draw grids
         drawGrid(surface);
 
-        SNAKE(snake_x, snake_y);
+        draw_snake(surface, &snake);
+        SNAKE(snake.x, snake.y);
         APPLE(apple_x, apple_y);
 
         SDL_UpdateWindowSurface(window);
-        SDL_Delay(10);
+        SDL_Delay(100);
     }
 
 
