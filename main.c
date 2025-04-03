@@ -15,13 +15,14 @@
 #define CELL_SIZE 40
 #define GRIDLINE_WIDTH 2
 
-#define INITIAL_LENGTH 4
+#define INITIAL_LENGTH 3
 
 #define ROWS SCREEN_HEIGHT / CELL_SIZE
 #define COLS SCREEN_WIDTH / CELL_SIZE
 
 #define SNAKE() draw_snake(surface, &snake)
 #define APPLE(x, y) fill_cell(surface, x, y, COLOR_APPLE)
+#define NEW_APPLE() new_apple(&apple_x, &apple_y)
 
 struct segment {
     int x, y; // relative to cells
@@ -46,27 +47,27 @@ void initialize_snake(struct Snake snake, int start_x, int start_y)
 
 void update_segments(struct Snake *snake)
 {
+    for (int i = snake->length - 1; i > 0; i--)
+    {
+        snake->segments[i] = snake->segments[i - 1];
+    }
 
     switch (snake->direction)
     {
     case 1:
-        snake->segments[snake->length - 1].y--;
+        snake->segments[0].y--;
         break;
     case 2:
-        snake->segments[snake->length - 1].y++;
+        snake->segments[0].y++;
         break;
     case 3:
-        snake->segments[snake->length - 1].x--;
+        snake->segments[0].x--;
         break;
     case 4:
-        snake->segments[snake->length - 1].x++;
+        snake->segments[0].x++;
         break;
     }
-    for (int i = 0; i < snake->length - 1; i++)
-    {
-        snake->segments[i] = snake->segments[i + 1];
     }
-}
 
 void draw_snake(SDL_Surface *surface, struct Snake *snake) {
     SDL_Rect rect = {snake->segments[0].x, snake->segments[0].y, CELL_SIZE - GRIDLINE_WIDTH, CELL_SIZE - GRIDLINE_WIDTH};
@@ -75,12 +76,8 @@ void draw_snake(SDL_Surface *surface, struct Snake *snake) {
         rect.x = snake->segments[i].x * CELL_SIZE + GRIDLINE_WIDTH;
         rect.y = snake->segments[i].y * CELL_SIZE + GRIDLINE_WIDTH;
 
-        if (i == snake->length - 1) {
-            SDL_FillSurfaceRect(surface, &rect, COLOR_GRID);
-        }
-        else {
-            SDL_FillSurfaceRect(surface, &rect, COLOR_SNAKE);
-        }
+        SDL_FillSurfaceRect(surface, &rect, COLOR_SNAKE);
+        
     }
 }
 
@@ -89,6 +86,12 @@ void fill_cell(SDL_Surface *surface, int x, int y, Uint32 color) {
 
     SDL_FillSurfaceRect(surface, &rect, color);
 }
+
+bool check_apple_collision(struct Snake snake, int apple_x, int apple_y) {
+    if (snake.segments[0].x == apple_x && snake.segments[0].y == apple_y) return true;
+    return false;
+}
+
 
 void drawGrid(SDL_Surface *surface)
 {
@@ -131,7 +134,7 @@ int main()
     struct Snake snake = {INITIAL_LENGTH, 1, 4}; // length, speed, direction
 
     // Snake segments
-    snake.segments = malloc(sizeof(struct segment) * snake.length);
+    snake.segments = malloc(sizeof(struct segment) * 10); //change this later
     if (snake.segments == NULL) {
         printf("malloc failed!\n");
         exit(1); // terminate game
@@ -149,9 +152,10 @@ int main()
    
 
     initialize_snake(snake, snake_start_x, snake_start_y);
+    NEW_APPLE();
 
     SDL_Event event;
-
+    
     while (running)
     {
         while (SDL_PollEvent(&event))
@@ -165,7 +169,6 @@ int main()
                 if (event.key.key == SDLK_W && snake.direction != 2)
                 {
                     snake.direction = 1;
-                    new_apple(&apple_x, &apple_y);
                 }
                 else if (event.key.key == SDLK_S && snake.direction != 1)
                 {
@@ -183,6 +186,12 @@ int main()
             }
         }
 
+        //check if snake ate apple
+        if (check_apple_collision(snake, apple_x, apple_y)) {
+            NEW_APPLE();
+            snake.length++;
+        }
+
         SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
 
         // draw grids
@@ -194,7 +203,7 @@ int main()
         APPLE(apple_x, apple_y);
 
         SDL_UpdateWindowSurface(window);
-        SDL_Delay(1000);
+        SDL_Delay(100);
     }
 
     free(snake.segments);
