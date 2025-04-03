@@ -34,17 +34,37 @@ struct Snake {
 
 
 
+void initialize_snake(struct Snake snake, int x, int y) {
+    for (int i = 0; i < snake.length; i++) {
+        snake.segments[i].x = x;
+        snake.segments[i].y = y;
+    }
+}
+
 void update_segments(struct Snake* snake) {
-    // let's assume that the direction is right
-    for (int i = 0; i < snake->length - 1; i++) {
+
+       switch (snake->direction) {
+        case 1:
+            snake->segments[snake->length - 1].y--;
+            break;
+        case 2:
+            snake->segments[snake->length - 1].y++;
+            break;
+        case 3:
+            snake->segments[snake->length - 1].x--;
+            break;
+        case 4:
+            snake->segments[snake->length - 1].x++;
+            break;
+    }
+ for (int i = 0; i < snake->length - 1; i++) {
         snake->segments[i] = snake->segments[i + 1];    
     }
 
-    snake->segments[snake->length - 1].x ++;
 }
 
 void draw_snake(SDL_Surface* surface, struct Snake* snake) {
-    SDL_Rect rect = {0, 0, CELL_SIZE - GRID_WIDTH, CELL_SIZE-GRID_WIDTH};
+    SDL_Rect rect = {snake->segments[0].x, snake->segments[0].y , CELL_SIZE - GRID_WIDTH, CELL_SIZE-GRID_WIDTH};
     for(int i = 0; i < snake->length; i++) {
         rect.x = snake->segments[i].x * CELL_SIZE + GRID_WIDTH;
         rect.y = snake->segments[i].y * CELL_SIZE + GRID_WIDTH;
@@ -83,9 +103,9 @@ int main() {
     int FPS_COUNTER = 0;
 
     SDL_Rect black_screen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-    struct Snake snake  = {10, 10, 3, 1, 1};
+    struct Snake snake  = {10, 10, 7, 1, 4};
 
-    snake.segments = malloc(sizeof(struct segment) * 3);
+    snake.segments = malloc(sizeof(struct segment) * snake.length);
     if (snake.segments == NULL) {
         printf("Memory allocation failed!\n");
         exit(1); // Handl.e error appropriately
@@ -97,11 +117,7 @@ int main() {
     int apple_y = 10;
     //////////
 
-    for (int i = 0; i < snake.length; i++) {
-        snake.segments[i].index = i;
-        snake.segments[i].x = snake_x + i;
-        snake.segments[i].y = snake_y;
-    }
+    initialize_snake(snake, snake_x, snake_y);
 
     int running = 1; //1 f r true and 0 for false
     SDL_Event event;
@@ -113,17 +129,17 @@ int main() {
                 running = 0;  
             }
             if(event.type == SDL_EVENT_KEY_DOWN){
-                if (event.key.key == SDLK_W){
+                if (event.key.key == SDLK_W && snake.direction != 2){
                     snake.direction = 1;
                 }
-                else if (event.key.key == SDLK_S) {
+                else if (event.key.key == SDLK_S && snake.direction != 1) {
                     snake.direction  = 2;
                 }
 
-                else if (event.key.key == SDLK_A) {
+                else if (event.key.key == SDLK_A && snake.direction != 4) {
                     snake.direction = 3;
                 }
-                else if (event.key.key == SDLK_D) {
+                else if (event.key.key == SDLK_D && snake.direction != 3) {
                     snake.direction = 4;
                 }
 
@@ -138,21 +154,14 @@ int main() {
 
         update_segments(&snake);
         SNAKE();
-        //APPLE(apple_x, apple_y);
 
         SDL_UpdateWindowSurface(window);
-        SDL_Delay(1000);
+        SDL_Delay(100);
     }
-
-
-
-
 
     free(snake.segments);
     SDL_DestroyWindow(window);
     SDL_Quit();
-
-
 
     return 0;
 }
