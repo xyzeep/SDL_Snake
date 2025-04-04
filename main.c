@@ -8,11 +8,11 @@
 #define SCREEN_HEIGHT 800
 
 #define COLOR_BLACK 0x00000000
-#define COLOR_GRID 0x75757575
+#define COLOR_GRID 0x1f1f1f1f
 #define COLOR_APPLE 0x00ff0000
 #define COLOR_SNAKE 0xffffffff
 
-#define CELL_SIZE 40
+#define CELL_SIZE 30
 #define GRIDLINE_WIDTH 2
 
 #define INITIAL_LENGTH 3
@@ -21,8 +21,9 @@
 #define COLS SCREEN_WIDTH / CELL_SIZE
 
 #define SNAKE() draw_snake(surface, &snake)
-#define APPLE(x, y) fill_cell(surface, x, y, COLOR_APPLE)
+#define APPLE() draw_apple(surface, apple_x, apple_y)
 #define NEW_APPLE() new_apple(&apple_x, &apple_y)
+#define NEW_GAME() new_game(surface, &snake, &apple_x, &apple_y)
 
 struct segment {
     int x, y; // relative to cells
@@ -36,12 +37,30 @@ struct Snake
     struct segment *segments;
 };
 
-void initialize_snake(struct Snake snake, int start_x, int start_y)
+void new_snake(struct Snake* snake)
 {
-    for (int i = 0; i < snake.length; i++)
+   // Snake segments
+    snake->segments = malloc(sizeof(struct segment) * 10); //change this later
+    if (snake->segments == NULL) {
+        printf("malloc failed!\n");
+        exit(1); // terminate game
+    }
+
+    //random seed
+    srand(time(NULL)); 
+
+    // initial values
+    int snake_start_x = 3 + rand() % (COLS - 6 + 1);
+    int snake_start_y = 3 + rand() % (ROWS - 6 + 1);
+
+    snake->length = INITIAL_LENGTH;
+    snake->speed = 1;
+    snake->direction = 1 + rand() % 4;
+
+    for (int i = 0; i < snake->length; i++)
     {
-        snake.segments[i].x = start_x;
-        snake.segments[i].y = start_y;
+        snake->segments[i].x = snake_start_x;
+        snake->segments[i].y = snake_start_y;
     }
 }
 
@@ -54,20 +73,20 @@ void update_segments(struct Snake *snake)
 
     switch (snake->direction)
     {
-    case 1:
-        snake->segments[0].y--;
-        break;
-    case 2:
-        snake->segments[0].y++;
-        break;
-    case 3:
-        snake->segments[0].x--;
-        break;
-    case 4:
-        snake->segments[0].x++;
-        break;
+        case 1:
+            snake->segments[0].y--;
+            break;
+        case 2:
+            snake->segments[0].y++;
+            break;
+        case 3:
+            snake->segments[0].x--;
+            break;
+        case 4:
+            snake->segments[0].x++;
+            break;
     }
-    }
+}
 
 void draw_snake(SDL_Surface *surface, struct Snake *snake) {
     SDL_Rect rect = {snake->segments[0].x, snake->segments[0].y, CELL_SIZE - GRIDLINE_WIDTH, CELL_SIZE - GRIDLINE_WIDTH};
@@ -77,14 +96,44 @@ void draw_snake(SDL_Surface *surface, struct Snake *snake) {
         rect.y = snake->segments[i].y * CELL_SIZE + GRIDLINE_WIDTH;
 
         SDL_FillSurfaceRect(surface, &rect, COLOR_SNAKE);
-        
+
     }
 }
 
-void fill_cell(SDL_Surface *surface, int x, int y, Uint32 color) {
+bool check_collision(struct Snake snake) {
+
+    int head_x = snake.segments[0].x;
+    int head_y = snake.segments[0].y;
+
+    //border collision
+    if ((head_x == 0 ||head_x == COLS) || (head_y == 0 || head_y == ROWS)) {
+        return true;
+    }
+
+    // self collision
+    for (int i = 1; i < snake.length; i++) {
+        if(head_x == snake.segments[i].x  && head_y == snake.segments[i].y) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void new_apple(int* apple_x, int* apple_y) {
+    *apple_x = 1 + rand() % COLS;
+    *apple_y = 1 + rand() % ROWS;
+}
+void new_game(SDL_Surface* surface, struct Snake* snake, int* apple_x, int* apple_y) {
+    new_snake(snake);
+    new_apple(apple_x, apple_y);
+}
+
+
+void draw_apple(SDL_Surface *surface, int x, int y) {
     SDL_Rect rect = {x * CELL_SIZE + GRIDLINE_WIDTH, y * CELL_SIZE + GRIDLINE_WIDTH, CELL_SIZE - GRIDLINE_WIDTH, CELL_SIZE - GRIDLINE_WIDTH};
 
-    SDL_FillSurfaceRect(surface, &rect, color);
+    SDL_FillSurfaceRect(surface, &rect, COLOR_APPLE);
 }
 
 bool check_apple_collision(struct Snake snake, int apple_x, int apple_y) {
@@ -109,11 +158,6 @@ void drawGrid(SDL_Surface *surface)
     }
 }
 
-void new_apple(int* apple_x, int* apple_y) {
-
-    *apple_x = 1 + rand() % COLS;
-    *apple_y = 1 + rand() % ROWS;
-}
 
 
 
@@ -125,37 +169,20 @@ int main()
     SDL_Surface *surface = SDL_GetWindowSurface(window);
 
     SDL_Rect black_screen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT}; // to reset screen on every iteration
-    
-    
+
+
     int running = 1; // 1 for true and 0 for false
-    
-    
+
+    //intial apple values
+    int apple_x, apple_y;
     //SNAKE
-    struct Snake snake = {INITIAL_LENGTH, 1, 4}; // length, speed, direction
+    struct Snake snake;
 
-    // Snake segments
-    snake.segments = malloc(sizeof(struct segment) * 10); //change this later
-    if (snake.segments == NULL) {
-        printf("malloc failed!\n");
-        exit(1); // terminate game
-    }
-    
-    //random seed
-    srand(time(NULL)); 
-
-    // initial values
-    int snake_start_x = 3 + rand() % (COLS - 6 + 1);
-    int snake_start_y = 3 + rand() % (ROWS - 6 + 1);
-    
-    int apple_x = 1 + rand() % (COLS);
-    int apple_y = 1 + rand() % (ROWS);
-   
-
-    initialize_snake(snake, snake_start_x, snake_start_y);
+    new_snake(&snake);
     NEW_APPLE();
 
     SDL_Event event;
-    
+
     while (running)
     {
         while (SDL_PollEvent(&event))
@@ -192,18 +219,21 @@ int main()
             snake.length++;
         }
 
+        if (check_collision(snake)) NEW_GAME();
+
+       
         SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
 
         // draw grids
         drawGrid(surface);
 
         update_segments(&snake);
-        
+
         SNAKE();
-        APPLE(apple_x, apple_y);
+        APPLE();
 
         SDL_UpdateWindowSurface(window);
-        SDL_Delay(100);
+        SDL_Delay(200);
     }
 
     free(snake.segments);
