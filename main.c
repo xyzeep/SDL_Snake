@@ -5,14 +5,14 @@
 
 
 #define SCREEN_WIDTH 1200
-#define SCREEN_HEIGHT 800
+#define SCREEN_HEIGHT 820
 
 #define COLOR_BLACK 0x00000000
 #define COLOR_GRID 0x1f1f1f1f
 #define COLOR_APPLE 0x00ff0000
 #define COLOR_SNAKE 0xffffffff
 
-#define CELL_SIZE 30
+#define CELL_SIZE 60
 #define GRIDLINE_WIDTH 2
 
 #define INITIAL_LENGTH 3
@@ -39,7 +39,7 @@ struct Snake
 
 void new_snake(struct Snake* snake)
 {
-   // Snake segments
+    // Snake segments
     snake->segments = malloc(sizeof(struct segment) * 10); //change this later
     if (snake->segments == NULL) {
         printf("malloc failed!\n");
@@ -62,6 +62,12 @@ void new_snake(struct Snake* snake)
         snake->segments[i].x = snake_start_x;
         snake->segments[i].y = snake_start_y;
     }
+}
+
+void reallocate_snake(struct Snake* snake) {
+
+    (snake->segments) = realloc(snake->segments,(snake->length + 5) * sizeof(struct segment));
+    
 }
 
 void update_segments(struct Snake *snake)
@@ -123,6 +129,7 @@ bool check_collision(struct Snake snake) {
 void new_apple(int* apple_x, int* apple_y) {
     *apple_x = 1 + rand() % COLS;
     *apple_y = 1 + rand() % ROWS;
+    printf("ROWS and COlS: %d, %d\n", *apple_x, *apple_y);
 }
 void new_game(SDL_Surface* surface, struct Snake* snake, int* apple_x, int* apple_y) {
     new_snake(snake);
@@ -172,6 +179,8 @@ int main()
 
 
     int running = 1; // 1 for true and 0 for false
+    int current_max_length = 10;
+
 
     //intial apple values
     int apple_x, apple_y;
@@ -217,11 +226,17 @@ int main()
         if (check_apple_collision(snake, apple_x, apple_y)) {
             NEW_APPLE();
             snake.length++;
+            if (snake.length > current_max_length - 2) {
+                reallocate_snake(&snake);
+                printf("just reallocted");
+            }
+            
+            printf("snake size: %zu bytes\n", sizeof(snake.segments));
         }
 
         if (check_collision(snake)) NEW_GAME();
 
-       
+
         SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
 
         // draw grids
