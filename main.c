@@ -40,7 +40,7 @@ struct Snake
 void new_snake(struct Snake* snake)
 {
     // Snake segments
-    snake->segments = malloc(sizeof(struct segment) * 10); //change this later
+    snake->segments = malloc(sizeof(struct segment) * 5); //change this later
     if (snake->segments == NULL) {
         printf("malloc failed!\n");
         exit(1); // terminate game
@@ -127,9 +127,9 @@ bool check_collision(struct Snake snake) {
 }
 
 void new_apple(int* apple_x, int* apple_y) {
-    *apple_x = 1 + rand() % COLS;
-    *apple_y = 1 + rand() % ROWS;
-    printf("ROWS and COlS: %d, %d\n", *apple_x, *apple_y);
+    *apple_x = 3 + rand() % (COLS - 4);
+    *apple_y = 3 + rand() % (ROWS - 4);
+    printf("ROWS and COlS: %d, %d\n", *apple_y, *apple_x);
 }
 void new_game(SDL_Surface* surface, struct Snake* snake, int* apple_x, int* apple_y) {
     new_snake(snake);
@@ -228,15 +228,17 @@ int main()
             snake.length++;
             if (snake.length > current_max_length - 2) {
                 reallocate_snake(&snake);
+                current_max_length += 5;
                 printf("just reallocted");
             }
             
             printf("snake size: %zu bytes\n", sizeof(snake.segments));
         }
 
-        if (check_collision(snake)) NEW_GAME();
-
-
+        if (check_collision(snake)){
+            free(snake.segments);
+            NEW_GAME();
+       } 
         SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
 
         // draw grids
