@@ -5,14 +5,14 @@
 
 
 #define SCREEN_WIDTH 1200
-#define SCREEN_HEIGHT 820
+#define SCREEN_HEIGHT 800
 
 #define COLOR_BLACK 0x00000000
 #define COLOR_GRID 0x1f1f1f1f
 #define COLOR_APPLE 0x00ff0000
 #define COLOR_SNAKE 0xffffffff
 
-#define CELL_SIZE 60
+#define CELL_SIZE 40
 #define GRIDLINE_WIDTH 2
 
 #define INITIAL_LENGTH 3
@@ -67,7 +67,7 @@ void new_snake(struct Snake* snake)
 void reallocate_snake(struct Snake* snake) {
 
     (snake->segments) = realloc(snake->segments,(snake->length + 5) * sizeof(struct segment));
-    
+
 }
 
 void update_segments(struct Snake *snake)
@@ -112,7 +112,7 @@ bool check_collision(struct Snake snake) {
     int head_y = snake.segments[0].y;
 
     //border collision
-    if ((head_x == 0 ||head_x == COLS) || (head_y == 0 || head_y == ROWS)) {
+    if ((head_x < 0 ||head_x == COLS) || (head_y < 0 || head_y == ROWS)) {
         return true;
     }
 
@@ -129,7 +129,6 @@ bool check_collision(struct Snake snake) {
 void new_apple(int* apple_x, int* apple_y) {
     *apple_x = 3 + rand() % (COLS - 4);
     *apple_y = 3 + rand() % (ROWS - 4);
-    printf("ROWS and COlS: %d, %d\n", *apple_y, *apple_x);
 }
 void new_game(SDL_Surface* surface, struct Snake* snake, int* apple_x, int* apple_y) {
     new_snake(snake);
@@ -179,6 +178,7 @@ int main()
 
 
     int running = 1; // 1 for true and 0 for false
+    int paused = 0; // 1 for true and 0 for false
     int current_max_length = 10;
 
 
@@ -200,7 +200,7 @@ int main()
             {
                 running = 0;
             }
-            if (event.type == SDL_EVENT_KEY_DOWN)
+            if (event.type == SDL_EVENT_KEY_DOWN && !paused)
             {
                 if (event.key.key == SDLK_W && snake.direction != 2)
                 {
@@ -219,38 +219,52 @@ int main()
                 {
                     snake.direction = 4;
                 }
+                else if (event.key.key == SDLK_ESCAPE) {
+                    paused = 1;
+                    printf("Game Paused.\n");
+                }
+
             }
+            else if (event.type == SDL_EVENT_KEY_DOWN && paused) {
+                if (event.key.key == SDLK_ESCAPE) 
+                {
+                    paused = 0;
+                    printf("Game Resumed.\n");
+                }              
+            }
+
+        }
+        if (!paused) {
+            //check if snake ate apple
+            if (check_apple_collision(snake, apple_x, apple_y)) {
+                NEW_APPLE();
+                snake.length++;
+                printf("Score: %d\n", snake.length - INITIAL_LENGTH);
+                if (snake.length > current_max_length - 2) {
+                    reallocate_snake(&snake);
+                    current_max_length += 5;
+                }
+
+            }
+
+            if (check_collision(snake)){
+                free(snake.segments);
+                NEW_GAME();
+            }
+            SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
+
+            // draw grids
+            drawGrid(surface);
+
+            update_segments(&snake);
+
+            SNAKE();
+            APPLE();
+
+            SDL_UpdateWindowSurface(window);
         }
 
-        //check if snake ate apple
-        if (check_apple_collision(snake, apple_x, apple_y)) {
-            NEW_APPLE();
-            snake.length++;
-            if (snake.length > current_max_length - 2) {
-                reallocate_snake(&snake);
-                current_max_length += 5;
-                printf("just reallocted");
-            }
-            
-            printf("snake size: %zu bytes\n", sizeof(snake.segments));
-        }
-
-        if (check_collision(snake)){
-            free(snake.segments);
-            NEW_GAME();
-       } 
-        SDL_FillSurfaceRect(surface, &black_screen, COLOR_BLACK);
-
-        // draw grids
-        drawGrid(surface);
-
-        update_segments(&snake);
-
-        SNAKE();
-        APPLE();
-
-        SDL_UpdateWindowSurface(window);
-        SDL_Delay(200);
+               SDL_Delay(200);
     }
 
     free(snake.segments);
